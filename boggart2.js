@@ -9,60 +9,104 @@
 
 const process = require('process');
 
-//let char_fns = new CharFns;
 let run_repl = (chunk) => {
     process.stdin.pause();
     let boggart = Boggart.parser();
     boggart.parse(chunk.trim());
-    // hmm...
-    //console.log(boggart.functions);
-    //boggart.exec(char_fns);
+    console.log('program ' + boggart.functions.join(' '));
+    let result = boggart.exec(new CharFns);
+    process.stdout.write(result.str + '\n');
     process.stdout.write('> ');
     process.stdin.resume();
+}
+
+let wrapper = function () {
+    return {
+        wrapped: true,
+        value: [...arguments],
+        toString: function () {
+            return "["+this.value.join(' ')+"]";
+        }
+    };
+}
+
+class CharFns extends Array {
+    n = 0; str = '';
+    constructor () {
+        super(...arguments);
+        this.push(this.char_fn(this.n++))
+    }
+    pop () {
+        if (this.length < 2) {
+            this.push(this.char_fn(this.n++))
+        }
+        return super.pop();
+    }
+    char_fn  (n, str) {
+        let this_ = this;
+        let char_fn = function (A) {
+            this_.str += String.fromCharCode(n+32);
+            return [wrapper(A)];
+        }
+        return char_fn;
+    }
 }
 
 process.stdin.setEncoding('utf8');
 process.stdout.write('> ');
 process.stdin.on('data', run_repl);
 
+let error = function (message) {
+    return { exception: true, value: message }
+}
+
+/*
+let BoggartFns = {
+    Wrapped,
+    Chained,
+    Wrap,
+    Chain,
+    Drop,
+    Mirror,
+}
+*/
+
 let Boggart = class {
-    // <functions> get applied to <arguments>
-    // both of these are stacks:
-    // the last value put on <functions> is called on
-    // the last value put on <args>, and both are removed
-    // from their respective stacks.
-    // we handle the fact that a function can return to some
-    // other functions and some other arguments by pushing
-    // those return values onto the appropriate stacks.
     functions = [];
-    args = [];
 
     parse (string) {
         this.functions = [this.base_parser];
-        this.args = string.split('').reverse().flatMap((c) => [c, false]);
-        this.args.unshift(true);
-        this.exec(); // error??
-        this.functions = this.args.reverse();
-        this.args = [];
-        console.log('program '+this.functions.join(' '));
+        let args = string.split('').reverse().flatMap((c) => [c, false]);
+        args.unshift(true);
+        let result = this.exec(args);
+        this.functions = result.reverse();
         return this;
     }
 
-    exec () {
+    exec (args_) {
         // TODO: dynamic optimization
         // real compilation??
         let fn;
-        while (fn = this.functions.pop()) {
+        let functions = this.functions.slice(0);
+        let args = args_.slice(0);
+        while (fn = functions.pop()) {
             if (fn.wrapped) {
-                this.args.push(...fn.value);
+                args.push(...fn.value);
             } else if (fn.chained) {
-                this.functions.push(...fn.value);
-            } else if (this.args.length) {
-                this.functions.push(...fn(this.args.pop()));
+                functions.push(...fn.value);
+            } else if (fn.exception) {
+                /// need 2 think abt this
+                console.error(fn.value);
+                return [];
+            } else if (args.length) {
+                functions.push(...fn(args.pop()));
             } else {
                 // error ?????
+                console.error("insufficient arguments 2 program....");
+                return [];
             }
         }
+        return args;
     }
 }
 
@@ -71,16 +115,6 @@ Boggart.parser = function () {
 
     // TODO: implement without functions! :)
     // TODO: implicit typing :)
-    let wrapper = function () {
-        return {
-            wrapped: true,
-            value: [...arguments],
-            toString: function () {
-                return "["+this.value.join(' ')+"]";
-            }
-        };
-    }
-
     let chainer = function () {
         return {
             chained: true,
@@ -132,7 +166,7 @@ Boggart.parser = function () {
 
             default:
             if (character.match(/\s/)) {
-                return [ ];
+                return [wrapper(chainer())];
             } else {
                 return [error(
                     "parse error: unrecognized character <"+character+">."
@@ -147,8 +181,8 @@ Boggart.parser = function () {
             return [
                 mirror, chain, wrapper(drop),
                 mirror, chain, chain, wrapper(drop),
-                mirror, chain, chain, wrapper(drop), wrapper(wrap), wrap,
-                wrapper(parser), char2fn
+                mirror, chain, chain, wrapper(drop), wrapper(wrap),
+                wrap, wrapper(parser), char2fn
             ];
         } else {
             return [];

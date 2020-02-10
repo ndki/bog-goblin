@@ -152,6 +152,11 @@ and skip values to call a function:
     => *::[-][Y][[X]]  =>  [X]Y
 ```
 
+call a function skipping a value:
+```
+*::@.- *:@.@:-. [X][Y]  =>  *::@.- [X][[Y]]  =>  [Y]X
+```
+
 or call a single function twice:
 ```
 ** :*. :@.- [X]  =>  **[[X-]X-]  =>  XX
@@ -174,9 +179,11 @@ the I, K, and S combinators, which provide equivalence with lambda-calculus:
 ```
 I[X] = -@..[X] => [X]
 K[X][Y] = *::@.-@.-.[X][Y] => *[[X]--][Y] => [X]
-/// Oops this is totally wrong. haha
-S[X][Y][Z] = *:@.- *: *:@.-: *:@.@:-. .. *::@.- *::@.- *:@.@:-. ...
-     @.@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:@:
-     .. @.@:-. :* .@.-: .*. @.-::* @:*: ... @.@:-. :* @.-::* @.-::*
+S[X][Y][Z] = *:@.-. *::@.- *:@.@:-.. *: @.@:@: @.@:@:@:@:@:@: .*.@.-::* :* .
+    =>  *:[-]. *::[-] *:[.-]. *: [*: [*::[-].*.]] . [X][Y][Z]
+    =>  *:[-]. *::[-] *:[.-]. [X] *: [*::[-].*.] [Y][Z]
+    =>  *:[-]. *::[-] [X]. [Y(Z)] [Z]
+    =>  *:[-]. [Y(Z)] X[Z]
+    =>  X(Z)(Y(Z))
 ```
-a shorter (EDIT: or uh correct) version of S is very much welcome.
+(assuming, for S, that Y is a single-argument function)
