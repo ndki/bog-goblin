@@ -3,12 +3,21 @@
 BOGGART is a simple programming language. a boggart (or BOGGART) program
 is some series of the characters `-`, `.`, `:`, `*`, or `@`.
 
+BOGGART is purely combinatoric. it has no intrinsic input or output.
+rather, external functions must be supplied to a BOGGART program for
+it to do anything.
+
+a BOGGART program is first compiled, and then its arguments may be supplied.
+it is illegal for a BOGGART program to try to call a function that it does
+not have by trying to execute it at compile time. such time-traveling BOGGART
+programs are dangerous, rouge individuals, and must be stopped.
+
 ## SEMANTICS
 
 the semantics of the first four characters are as follows:
 ```
--[X]     =>  []         | drop
-.[X]     =>  [[X]]      | wrap
+-[X]     =>  []         | drop (a.k.a. pop)
+.[X]     =>  [[X]]      | wrap (a.k.a. quote)
 :[X][Y]  =>  [YX]       | chain
 *[X]     =>  X[X]       | mirror
 ```
@@ -26,12 +35,14 @@ reduce a program starting from right to left:
 actually, `[X]` is the function that evaluates to the value `X`
 (in addition to whatever arguments it is given) and in general
 we might assume `X` itself is a function.  that's why
-`A[X][Y]  =  A( [X]( [Y]() ) )  =  A(X, Y)`.
+```
+A[X][Y]  =  A( [X]( [Y]() ) )  =  A(X, Y)
+```
 
-so the program fragment above forgets the first thing after it, and then
-puts down the values "the function that evaluates to Y" and
+so, the program fragment above (`*.-`) forgets the first thing after it,
+and then puts down the values "the function that evaluates to Y" and
 "the function that evaluates to the function that evaluates to Y".
-when we have `[X]` we can just say that we have "the result `X`"
+but when we have `[X]` we can just say that we have "the result `X`"
 
 to be more clear about those functions, here's a written explanation:
 
